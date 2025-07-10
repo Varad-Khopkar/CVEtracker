@@ -1,1 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <title>CVE Tracker Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        td,
+        th {
+            word-wrap: break-word;
+            white-space: normal !important;
+            max-width: 400px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            /* fallback scroll if needed */
+        }
+
+        .description {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .show-more {
+            color: #0d6efd;
+            cursor: pointer;
+            font-weight: 500;
+        }
+    </style>
+
+    <script>
+        function toggleDescription(id) {
+            const shortText = document.getElementById(`short-${id}`);
+            const fullText = document.getElementById(`full-${id}`);
+            const toggleBtn = document.getElementById(`toggle-${id}`);
+
+            if (fullText.style.display === "none") {
+                fullText.style.display = "inline";
+                shortText.style.display = "none";
+                toggleBtn.textContent = " Show Less";
+            } else {
+                fullText.style.display = "none";
+                shortText.style.display = "inline";
+                toggleBtn.textContent = " Show More";
+            }
+        }
+    </script>
+
+</head>
+
+<body class="bg-light">
+    <div class="container mt-4">
+        <h2 class="text-primary">🛡️ Critical CVE Tracker Dashboard</h2>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+            <a href="{{ url_for('refresh') }}" class="btn btn-danger">🔄 Check for Latest CVEs</a>
+            <span class="text-muted">Last Updated: {{ last_updated }}</span>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if cves %}
+
+        <form method="get" action="/" class="row g-2 mb-4">
+  <div class="col-md-5">
+    <input type="text" name="q" class="form-control" placeholder="🔍 Search CVEs (e.g. openssl, apache)" value="{{ query }}">
+  </div>
+  <div class="col-md-2">
+    <input type="number" name="year" class="form-control" placeholder="Year (e.g. 2024)" value="{{ year_filter }}" min="1999" max="2099">
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-primary w-100">Filter</button>
+  </div>
+  <div class="col-md-3">
+    {% if query or year_filter %}
+      <a href="/" class="btn btn-outline-secondary w-100">Clear Filters</a>
+    {% endif %}
+  </div>
+</form>
+
+        <p class="text-muted">Found {{ cves|length }} result(s){% if query %} for “<strong>{{ query }}</strong>”{% endif
+            %}</p>
+
+            <p class="text-muted">
+  Showing {{ cves|length }} CVEs{% if year_filter %} from year {{ year_filter }}{% endif %}{% if query %} matching "{{ query }}"{% endif %}
+</p>
+
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover bg-white table-fixed w-100">
+                <thead class="table-dark">
+                    <tr>
+                        <th>CVE ID</th>
+                        <th>Description</th>
+                        <th>
+                            <a
+                                href="?q={{ query }}&sort=date&order={% if sort_by=='date' and sort_order=='asc' %}desc{% else %}asc{% endif %}">Published
+                                Date</a>
+                        </th>
+                        <th>
+                            <a
+                                href="?q={{ query }}&sort=score&order={% if sort_by=='score' and sort_order=='asc' %}desc{% else %}asc{% endif %}">CVSS
+                                v3.1 Score</a>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for cve in cves %}
+                    <tr>
+                        <td>{{ cve[0] }}</td>
+                        <td class="description">
+                            {% set cve_id = loop.index %}
+                            <span id="short-{{ cve_id }}">{{ cve[1][:200] }}{% if cve[1]|length > 200 %}...{% endif
+                                %}</span>
+                            <span id="full-{{ cve_id }}" style="display:none">{{ cve[1] }}</span>
+                            {% if cve[1]|length > 200 %}
+                            <span class="show-more" id="toggle-{{ cve_id }}"
+                                onclick="toggleDescription(`{{ cve_id }}`)">
+                                Show More</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ cve[2] }}</td>
+                        <td class="text-danger fw-bold">{{ cve[3] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav>
+            <ul class="pagination justify-content-center">
+
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query }}&page={{ page - 1 }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if page == p %}active{% endif %}">
+                    <a class="page-link" href="?q={{ query }}&page={{ p }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page < total_pages %} <li class="page-item">
+                    <a class="page-link" href="?q={{ query }}&page={{ page + 1 }}">Next</a>
+                    </li>
+                    {% endif %}
+
+            </ul>
+        </nav>
+
+
+        {% else %}
+        <p class="text-muted">No data available. Click the button to fetch the latest CVEs.</p>
+        {% endif %}
+    </div>
+</body>
+
+</html>
