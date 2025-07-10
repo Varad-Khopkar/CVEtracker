@@ -1,4 +1,4 @@
-# 🛡️ CVE Tracker Dashboard
+# 🛡️ VulnaBoard: Your CVE Command Center
 
 A Python-Flask-based vulnerability tracking dashboard that fetches, stores, and displays CVEs from the National Vulnerability Database (NVD). This release (RR2) enhances user interactivity, data persistence, and visualization to support cybersecurity monitoring workflows.
 
